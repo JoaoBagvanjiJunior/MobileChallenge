@@ -1,29 +1,44 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Image, StyleSheet } from 'react-native';
 import axios from 'axios';
+import * as FileSystem from 'expo-file-system';
 
 const FormScreen = ({ route, navigation }) => {
-  const { photoUri } = route.params;
+  const { photoUri } = route.params; // Receber o photoUri dos parâmetros da navegação
   const [name, setName] = useState('');
   const [birthday, setBirthday] = useState('');
   const [address, setAddress] = useState('');
 
   const handleSubmit = async () => {
+    console.log('Name:', name);
+    console.log('Birthday:', birthday);
+    console.log('Address:', address);
+    console.log('Photo URI:', photoUri); // Logar o photoUri para depuração
+
     if (name && birthday && address && photoUri) {
-      const formData = new FormData();
-      formData.append('name', name);
-      formData.append('birthday', birthday);
-      formData.append('address', address);
-      formData.append('photo', {
-        uri: photoUri,
-        type: 'image/jpeg',
-        name: 'photo.jpg',
-      });
+      // Convert the photo to Base64
+      let base64Photo;
+      try {
+        base64Photo = await FileSystem.readAsStringAsync(photoUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      } catch (error) {
+        alert('Failed to read photo file: ' + error.message);
+        return;
+      }
+
+      // Create the payload
+      const payload = {
+        photo: base64Photo,
+        name,
+        birthday,
+        address,
+      };
 
       try {
-        const response = await axios.post('YOUR_SERVER_URL', formData, {
+        const response = await axios.post('https://4niaadnpgf.execute-api.af-south-1.amazonaws.com/photos', payload, {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            'Content-Type': 'application/json',
           },
         });
         if (response.status === 200) {
@@ -42,7 +57,7 @@ const FormScreen = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Image source={{ uri: photoUri }} style={styles.photo} />
+      {photoUri && <Image source={{ uri: photoUri }} style={styles.photo} />}
       <TextInput
         style={styles.input}
         placeholder="Name"
@@ -79,11 +94,13 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 40,
-    borderColor: 'gray',
+    borderColor: '#CFCFCF',
+    color: '#52665A',
     borderWidth: 1,
     marginBottom: 12,
     paddingHorizontal: 8,
   },
+  
 });
 
 export default FormScreen;
